@@ -13,10 +13,10 @@
 
 | Onderdeel | Gegevens |
 |---|---|
-| Naam | _(in te vullen)_ |
-| Opleiding | HBO — richting **commercieel / zakelijk** _(precieze opleiding in te vullen)_ |
-| Studiejaar | _(in te vullen)_ |
-| Stageperiode | _(startdatum – einddatum in te vullen)_ |
+| Naam | **Sip Hoekstra** |
+| Opleiding | HBO — **International Business & Entrepreneurship**, EuroCollege Utrecht |
+| Studiejaar | 3e jaar |
+| Stageperiode | Ongeveer een half jaar (~20 weken) _(exacte datums in te vullen)_ |
 | Fase | Net begonnen |
 | Stagebegeleider (school) | _(in te vullen)_ |
 | Stagebegeleider (TOTECH) | _(in te vullen)_ |
@@ -67,6 +67,28 @@ en vervolgens ook daadwerkelijk **verkopen realiseren**.
 > _"Waarom blijft de verkoop van Xypex Admix achter, en met welke verkoopstrategie kan
 > TOTECH de verkoop van dit product structureel verhogen?"_
 
+### Concept-deelvragen voor het marktonderzoek
+Een mogelijke opbouw om de centrale vraag te beantwoorden (aanscherpen samen met je
+begeleider):
+
+1. **Markt & doelgroep**
+   - Wie zijn de (potentiële) afnemers van Xypex Admix in de Benelux (aannemers,
+     betonleveranciers, voorschrijvers, opdrachtgevers)?
+   - Welke partij beslist eigenlijk of een admixture wordt gebruikt?
+2. **Product & toepassing**
+   - In welke projecten is Xypex Admix de beste oplossing, en herkent de markt die situaties?
+   - Hoe verhoudt Admix zich tot de andere TOTECH-oplossingen (coatings, kelders ingieten)?
+3. **Bekendheid & beeldvorming**
+   - Hoe bekend is het concept "kristallijne waterdichting als betontoevoeging" in de markt?
+   - Welke misverstanden of drempels leven er bij klanten?
+4. **Concurrentie & prijs**
+   - Welke alternatieve methodes kiezen klanten nu, en waarom?
+   - Hoe wordt de prijs van Admix ervaren ten opzichte van het alternatief over de
+     totale levensduur (TCO)?
+5. **Verkoop & proces**
+   - Hoe verloopt het huidige verkoopproces van Admix en waar haken klanten af?
+   - Welke argumenten/bewijzen (referenties, certificering, garanties) overtuigen klanten?
+
 ---
 
 ## 4. Probleembeeld & eerste vermoedens
@@ -103,11 +125,18 @@ Wat ik persoonlijk uit deze stage wil halen:
 
 ## 6. Wat ik meebreng
 
-- **Achtergrond:** commercieel / zakelijk (HBO).
-- **Sterke punten:** _(in te vullen — bv. klantgericht, communicatief, analytisch,
-  doorzettingsvermogen)_
-- **Combinatie die past bij de opdracht:** commerciële instelling + onderzoekend vermogen,
-  precies de mix die deze opdracht (onderzoek → strategie → verkoop) vraagt.
+- **Achtergrond:** International Business & Entrepreneurship (HBO, 3e jaar) — een
+  internationale, commerciële en ondernemende opleiding.
+- **Sterke punten (concept — aanscherpen waar nodig):**
+  - **Commercieel en klantgericht** — gericht op behoeften van de klant en op resultaat.
+  - **Ondernemend** — kansen zien en zelf initiatief nemen (past bij een product dat
+    nog "in de markt gezet" moet worden).
+  - **Internationaal/talig** — prettig in een Benelux-context met Nederlandse, Belgische
+    en Luxemburgse klanten.
+  - **Analytisch** — onderzoeksresultaten kunnen vertalen naar een onderbouwde strategie.
+- **Combinatie die past bij de opdracht:** commerciële én ondernemende instelling +
+  onderzoekend vermogen — precies de mix die deze opdracht
+  (onderzoek → strategie → verkoop) vraagt.
 
 ---
 
@@ -138,9 +167,9 @@ Verzamel hier situaties die je later in een gesprek kunt gebruiken volgens de
 
 ## 9. Openstaande punten om aan te vullen
 
-- [ ] Naam, opleiding en exacte studierichting
-- [ ] Stageperiode (begin- en einddatum)
+- [x] Naam, opleiding en exacte studierichting
+- [ ] Stageperiode: exacte begin- en einddatum (duur ~20 weken is bekend)
 - [ ] Namen begeleiders (school + TOTECH)
-- [ ] Concrete onderzoeksvragen / deelvragen
-- [ ] Doelstelling in cijfers (bv. verkoopdoel voor de stageperiode)
-- [ ] Sterke punten verder concreet maken
+- [x] Concept-deelvragen geformuleerd → nog definitief maken met begeleider
+- [ ] Doelstelling in cijfers (nu nog geen verkoopdoel afgesproken)
+- [x] Sterke punten concept opgesteld → eventueel verder persoonlijk maken
