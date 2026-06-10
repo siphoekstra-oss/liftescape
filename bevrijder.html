@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A0A0A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Liftescape Bevrijder</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+      touch-action: manipulation;
+    }
+
+    :root {
+      --gold:          #C9A84C;
+      --gold-dim:      rgba(201,168,76,0.12);
+      --gold-mid:      rgba(201,168,76,0.35);
+      --gold-border:   rgba(201,168,76,0.25);
+      --bg:            #0A0A0A;
+      --card:          #141414;
+      --card2:         #1C1C1C;
+      --card3:         #242424;
+      --text:          #F5F0E8;
+      --text-dim:      rgba(245,240,232,0.45);
+      --text-muted:    rgba(245,240,232,0.22);
+      --border:        rgba(245,240,232,0.07);
+      --border-mid:    rgba(245,240,232,0.12);
+      --kritisch:      #E03535;
+      --kritisch-dim:  rgba(224,53,53,0.12);
+      --kritisch-b:    rgba(224,53,53,0.28);
+      --standaard:     #D4820A;
+      --standaard-dim: rgba(212,130,10,0.12);
+      --standaard-b:   rgba(212,130,10,0.28);
+      --green:         #3DA568;
+      --blue:          #3B82D4;
+      --nav-h:         62px;
+      --bar-h:         46px;
+    }
+
+    html, body { width: 100%; height: 100%; background: var(--bg); overflow: hidden; }
+
+    #app {
+      width: 100%; height: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+    }
+
+    /* ─── TOP STATUS BAR ─── */
+    #status-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: var(--bar-h);
+      background: rgba(10,10,10,0.96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 90;
+    }
+
+    .sb-online {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; color: var(--green);
+      letter-spacing: 0.04em;
+    }
+    .sb-pulse {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      animation: pulseGreen 2.2s ease-in-out infinite;
+    }
+    @keyframes pulseGreen {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.45; transform:scale(0.85); }
+    }
+    .sb-cert {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-dim);
+      letter-spacing: 0.06em;
+    }
+    .sb-name { font-size: 12px; font-weight: 600; color: var(--gold); }
+
+    /* ─── LOGO ─── */
+    .logo-mark {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px;
+      background: var(--gold);
+      border-radius: 4px;
+      font-size: 10px; font-weight: 800;
+      color: #0A0A0A; letter-spacing: -0.02em;
+      margin-right: 2px;
+    }
+
+    /* ─── SCREENS ─── */
+    .screen {
+      position: absolute;
+      top: var(--bar-h);
+      left: 0; right: 0;
+      bottom: var(--nav-h);
+      overflow-y: auto; overflow-x: hidden;
+      display: none;
+      background: var(--bg);
+    }
+    .screen.active { display: block; }
+    #screen-kaart { overflow: hidden; }
+    ::-webkit-scrollbar { display: none; }
+
+    /* ─── MAP ─── */
+    #map { width: 100%; height: 100%; }
+
+    .leaflet-container { background: #0d0d0d !important; font-family: 'Inter', sans-serif !important; }
+    .leaflet-control-attribution { display: none !important; }
+    .leaflet-control-zoom { display: none !important; }
+
+    /* Map pin: incident */
+    .map-pin {
+      display: flex; flex-direction: column; align-items: center;
+      cursor: pointer;
+    }
+    .map-pin-dot {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      border: 2px solid rgba(255,255,255,0.2);
+      position: relative;
+      z-index: 2;
+    }
+    .map-pin-dot.kritisch {
+      background: var(--kritisch);
+      animation: pinPulseRed 1.8s ease-out infinite;
+    }
+    .map-pin-dot.standaard {
+      background: var(--standaard);
+    }
+    @keyframes pinPulseRed {
+      0%   { box-shadow: 0 0 0 0   rgba(224,53,53,0.65); }
+      70%  { box-shadow: 0 0 0 18px rgba(224,53,53,0); }
+      100% { box-shadow: 0 0 0 0   rgba(224,53,53,0); }
+    }
+    .map-pin-tail {
+      width: 3px; height: 10px;
+      background: currentColor;
+      border-radius: 0 0 2px 2px;
+      margin-top: -1px;
+    }
+    .map-pin-dot.kritisch + .map-pin-tail { color: var(--kritisch); }
+    .map-pin-dot.standaard + .map-pin-tail { color: var(--standaard); }
+
+    .map-pin-label {
+      background: rgba(10,10,10,0.88);
+      color: var(--text);
+      font-size: 9px; font-weight: 600;
+      padding: 2px 6px; border-radius: 4px;
+      white-space: nowrap; margin-top: 3px;
+      border: 1px solid var(--border-mid);
+      letter-spacing: 0.04em;
+    }
+
+    /* User location pin */
+    .map-user-pin {
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .map-user-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--gold);
+      border: 3px solid var(--bg);
+      animation: pinPulseGold 2s ease-out infinite;
+    }
+    @keyframes pinPulseGold {
+      0%   { box-shadow: 0 0 0 0   rgba(201,168,76,0.7); }
+      70%  { box-shadow: 0 0 0 12px rgba(201,168,76,0); }
+      100% { box-shadow: 0 0 0 0   rgba(201,168,76,0); }
+    }
+    .map-user-label {
+      background: rgba(10,10,10,0.88);
+      color: var(--gold);
+      font-size: 9px; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px;
+      margin-top: 4px; white-space: nowrap;
+      border: 1px solid var(--gold-border);
+      letter-spacing: 0.06em;
+    }
+
+    /* (drawer removed — replaced by detail screen) */
+    .df-label {
+      font-size: 9px; font-weight: 600; color: var(--text-dim);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px;
+    }
+    .df-value { font-size: 13px; font-weight: 600; }
+    .df-value.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+    .btn-nav {
+      width: 100%; padding: 16px;
+      background: var(--gold); color: #0A0A0A;
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-nav:active { opacity: 0.82; transform: scale(0.98); }
+
+    /* ─── MELDING OVERLAY ─── */
+    #melding-overlay {
+      position: absolute; inset: 0;
+      background: var(--bg);
+      z-index: 300;
+      display: flex; flex-direction: column;
+      transform: translateY(-100%);
+      transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    #melding-overlay.visible { transform: translateY(0); }
+
+    .mo-top {
+      background: var(--card);
+      padding: 52px 18px 20px;
+      border-bottom: 1px solid var(--border-mid);
+      flex-shrink: 0;
+    }
+    .mo-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--gold);
+      letter-spacing: 0.12em; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .mo-id::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--gold); flex-shrink: 0;
+      animation: pulseGreen 1.5s infinite;
+    }
+
+    .urgency-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 6px;
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .urgency-badge .badge-dot {
+      width: 8px; height: 8px; border-radius: 50;
+      border-radius: 50%;
+    }
+    .ub-kritisch {
+      background: var(--kritisch-dim);
+      color: var(--kritisch);
+      border: 1px solid var(--kritisch-b);
+      animation: pulseBadge 1.4s ease-in-out infinite;
+    }
+    .ub-kritisch .badge-dot { background: var(--kritisch); animation: pulseBadge 1.4s infinite; }
+    .ub-standaard {
+      background: var(--standaard-dim);
+      color: var(--standaard);
+      border: 1px solid var(--standaard-b);
+    }
+    .ub-standaard .badge-dot { background: var(--standaard); }
+    @keyframes pulseBadge {
+      0%,100% { opacity:1; box-shadow: 0 0 0 0   rgba(224,53,53,0.4); }
+      50%      { opacity:0.82; box-shadow: 0 0 0 6px rgba(224,53,53,0); }
+    }
+
+    .mo-body {
+      flex: 1; padding: 18px 18px 0;
+      overflow-y: auto;
+    }
+
+    .info-block { margin-bottom: 18px; }
+    .ib-label {
+      font-size: 9px; font-weight: 600; color: var(--text-dim);
+      letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 5px;
+    }
+    .ib-value { font-size: 16px; font-weight: 600; line-height: 1.25; }
+    .ib-sub   { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+    .ib-mono  { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; }
+
+    .timer-block {
+      background: var(--card);
+      border: 1px solid var(--gold-border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .timer-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+    .timer-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px; font-weight: 700; color: var(--gold);
+      letter-spacing: 0.05em;
+    }
+    .timer-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+    .sep { height: 1px; background: var(--border); margin: 4px 0 18px; }
+
+    .mo-actions {
+      padding: 14px 18px 36px;
+      display: flex; flex-direction: column; gap: 10px;
+      background: var(--card);
+      border-top: 1px solid var(--border-mid);
+      flex-shrink: 0;
+    }
+    .btn-accept {
+      width: 100%; padding: 17px;
+      background: var(--gold); color: #0A0A0A;
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-accept:active { opacity: 0.82; transform: scale(0.98); }
+    .btn-decline {
+      width: 100%; padding: 16px;
+      background: transparent; color: #D07070;
+      border: 1px solid rgba(224,53,53,0.25); border-radius: 10px;
+      font-size: 13px; font-weight: 600; letter-spacing: 0.06em;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-decline:active { opacity: 0.6; }
+
+    /* ─── MELDING TAB SCREEN ─── */
+    #screen-melding { padding: 14px 14px 6px; }
+
+    .screen-top-label {
+      font-size: 9px; font-weight: 700; color: var(--text-muted);
+      letter-spacing: 0.14em; text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .live-badge {
+      background: var(--kritisch-dim); color: var(--kritisch);
+      border: 1px solid var(--kritisch-b);
+      font-size: 8px; font-weight: 700; letter-spacing: 0.1em;
+      padding: 2px 7px; border-radius: 3px;
+      animation: pulseBadge 1.4s infinite;
+    }
+
+    .incident-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .ic-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .ic-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--gold); letter-spacing: 0.1em;
+    }
+    .badge-sm {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+      padding: 3px 8px; border-radius: 4px; text-transform: uppercase;
+    }
+    .bs-kritisch { background: var(--kritisch-dim); color: var(--kritisch); border: 1px solid var(--kritisch-b); animation: pulseBadge 1.4s infinite; }
+    .bs-standaard { background: var(--standaard-dim); color: var(--standaard); border: 1px solid var(--standaard-b); }
+
+    .ic-title { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+    .ic-address { font-size: 12px; color: var(--text-dim); margin-bottom: 10px; }
+    .ic-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .ic-chip {
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px;
+      font-size: 11px; color: var(--text-dim);
+    }
+    .ic-chip span { color: var(--text); font-weight: 500; }
+    .ic-timer-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: 10px; border-top: 1px solid var(--border);
+    }
+    .ic-timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; color: var(--gold); font-weight: 600;
+    }
+    .ic-status {
+      font-size: 10px; color: var(--text-dim);
+      background: var(--card3); padding: 3px 8px; border-radius: 4px;
+    }
+
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: var(--text-muted); font-size: 13px; line-height: 1.6;
+    }
+    .empty-state .es-icon { margin-bottom: 12px; opacity: 0.4; display: flex; justify-content: center; }
+
+    /* ─── PROCESLOG SCREEN ─── */
+    #screen-proceslog { padding: 14px; }
+
+    .pl-header { margin-bottom: 20px; }
+    .pl-incident-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--gold); letter-spacing: 0.1em; margin-bottom: 4px;
+    }
+    .pl-title { font-size: 18px; font-weight: 700; }
+    .pl-subtitle { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+
+    .timeline { position: relative; padding-left: 30px; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px; top: 10px; bottom: 10px; width: 2px;
+      background: linear-gradient(to bottom, var(--border-mid), var(--border));
+    }
+
+    .tl-entry {
+      position: relative; margin-bottom: 22px;
+      opacity: 0; animation: slideIn 0.35s ease forwards;
+    }
+    @keyframes slideIn {
+      from { opacity:0; transform:translateY(6px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    .tl-dot {
+      position: absolute;
+      left: -26px; top: 3px;
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2.5px solid var(--bg);
+      flex-shrink: 0;
+    }
+    .d-alarm   { background: var(--kritisch); }
+    .d-dispatch{ background: var(--blue); }
+    .d-comm    { background: #666; }
+    .d-ok      { background: var(--green); }
+    .d-gold    { background: var(--gold); }
+
+    .tl-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-muted); margin-bottom: 3px;
+    }
+    .tl-text { font-size: 14px; color: var(--text); line-height: 1.4; }
+
+    .tl-entry.latest .tl-dot { box-shadow: 0 0 0 4px var(--gold-dim); }
+    .tl-entry.latest .tl-text { color: var(--gold); font-weight: 600; }
+    .tl-entry.latest .tl-time { color: var(--gold); opacity: 0.7; }
+
+    /* ─── PROFIEL SCREEN ─── */
+    #screen-profiel { padding: 14px; }
+
+    .profiel-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 18px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .pf-avatar {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: var(--gold-dim);
+      border: 2px solid var(--gold-border);
+      margin: 0 auto 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 700; color: var(--gold);
+    }
+    .pf-name { font-size: 20px; font-weight: 700; }
+    .pf-cert {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--gold);
+      letter-spacing: 0.1em; margin-top: 6px;
+    }
+    .pf-region { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .stat-card {
+      background: var(--card2); border-radius: 10px; padding: 14px;
+      border: 1px solid var(--border); text-align: left;
+    }
+    .stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px; font-weight: 700; color: var(--gold);
+    }
+    .stat-lbl { font-size: 10px; color: var(--text-dim); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .pf-section-title {
+      font-size: 9px; font-weight: 700; color: var(--text-muted);
+      letter-spacing: 0.14em; text-transform: uppercase;
+      margin: 16px 0 8px;
+    }
+    .pf-row {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 13px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .pf-row-label { font-size: 13px; }
+    .pf-row-val { font-size: 12px; color: var(--text-dim); }
+    .pf-row-val.gold { color: var(--gold); font-weight: 600; }
+
+    /* ─── BOTTOM NAV ─── */
+    #bottom-nav {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: var(--nav-h);
+      background: rgba(10,10,10,0.97);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--border);
+      display: flex; z-index: 90;
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px; cursor: pointer; position: relative;
+      padding-bottom: 6px;
+      transition: opacity 0.15s;
+    }
+    .nav-item:active { opacity: 0.55; }
+
+    .nav-icon-wrap {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .nav-svg { transition: opacity 0.2s; opacity: 0.32; }
+    .nav-item.active .nav-svg { opacity: 1; }
+
+    .nav-lbl {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--text-dim);
+      transition: color 0.2s;
+    }
+    .nav-item.active .nav-lbl { color: var(--gold); }
+
+    .nav-badge-dot {
+      position: absolute; top: 1px; right: 1px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--kritisch);
+      border: 1.5px solid var(--bg);
+      display: none;
+    }
+    .nav-badge-dot.visible { display: block; }
+
+    /* ─── INCOMING BANNER ─── */
+    #incoming-banner {
+      position: absolute;
+      top: var(--bar-h); left: 0; right: 0;
+      background: var(--kritisch);
+      color: white;
+      padding: 11px 16px;
+      font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; z-index: 280;
+      transform: translateY(-100%);
+      transition: transform 0.3s ease;
+    }
+    #incoming-banner.visible { transform: translateY(0); }
+    #incoming-banner svg { flex-shrink: 0; }
+
+    /* ─── UTILITY ─── */
+    .gold { color: var(--gold); }
+    .dim  { color: var(--text-dim); }
+
+    /* ─── DETAIL SCREEN ─── */
+    #screen-detail { padding: 14px; }
+
+    .detail-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 14px;
+      font-size: 12px; font-weight: 600; color: var(--text-dim);
+      cursor: pointer; margin-bottom: 16px;
+      transition: opacity 0.15s;
+    }
+    .detail-back:active { opacity: 0.6; }
+
+    .detail-hero {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 12px;
+    }
+    .detail-hero-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .detail-building { font-size: 20px; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
+    .detail-address { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; }
+
+    .detail-fields {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .detail-field {
+      background: var(--card2); border-radius: 8px; padding: 12px;
+      border: 1px solid var(--border);
+    }
+    .detail-field.full { grid-column: 1 / -1; }
+
+    .detail-route-card {
+      background: var(--gold-dim);
+      border: 1px solid var(--gold-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .detail-route-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .detail-route-dist { font-size: 22px; font-weight: 700; color: var(--gold); }
+    .detail-route-eta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+    .detail-route-steps { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+    .detail-route-steps span { color: var(--text); font-weight: 500; }
+
+    .detail-section-title {
+      font-size: 9px; font-weight: 700; color: var(--text-muted);
+      letter-spacing: 0.14em; text-transform: uppercase;
+      margin: 16px 0 8px;
+    }
+
+    .detail-checklist {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+    }
+    .detail-check-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .detail-check-item:last-child { border-bottom: none; }
+    .check-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .check-dot.pending { background: var(--standaard); }
+    .check-dot.done { background: var(--green); }
+
+    /* ─── FOCUS STATES (a11y) ─── */
+    button:focus-visible, .nav-item:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+    }
+
+    /* ─── CURSOR ─── */
+    button, .nav-item, [onclick], .map-pin { cursor: pointer; }
+
+    /* ─── SAFE AREA INSETS (PWA) ─── */
+    #status-bar  { padding-top: env(safe-area-inset-top, 0); }
+    #bottom-nav  { padding-bottom: env(safe-area-inset-bottom, 0); height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0)); }
+    .mo-actions  { padding-bottom: calc(36px + env(safe-area-inset-bottom, 0)); }
+
+    /* ─── REDUCED MOTION (a11y) ─── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .map-pin-dot.kritisch, .map-user-dot, .sb-pulse,
+      .ub-kritisch, .bs-kritisch, .nav-badge-dot { animation: none !important; }
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Top status bar -->
+  <div id="status-bar">
+    <div class="sb-online">
+      <div class="sb-pulse"></div>
+      <span class="logo-mark">LE</span>
+      Online
+    </div>
+    <div class="sb-cert">BRL K10006</div>
+    <div class="sb-name">R. Visser</div>
+  </div>
+
+  <!-- ─ SCREEN: Melding (tab) ─ -->
+  <div id="screen-melding" class="screen active">
+    <div class="screen-top-label">
+      Actieve melding
+      <span class="live-badge" id="melding-live-badge" style="display:none">LIVE</span>
+    </div>
+    <div id="melding-tab-content"></div>
+  </div>
+
+  <!-- ─ SCREEN: Kaart ─ -->
+  <div id="screen-kaart" class="screen">
+    <div id="map"></div>
+  </div>
+
+  <!-- ─ SCREEN: Proceslog ─ -->
+  <div id="screen-proceslog" class="screen">
+    <div class="pl-header">
+      <div class="pl-incident-id" id="pl-id">LE-2024-0041</div>
+      <div class="pl-title">Proceslog</div>
+      <div class="pl-subtitle">Liftbevrijding — chronologisch overzicht</div>
+    </div>
+    <div class="timeline" id="timeline"></div>
+  </div>
+
+  <!-- ─ SCREEN: Profiel ─ -->
+  <div id="screen-profiel" class="screen">
+    <div class="profiel-card">
+      <div class="pf-avatar">RV</div>
+      <div class="pf-name">R. Visser</div>
+      <div class="pf-cert">BRL K10006 · GECERTIFICEERD BEVRIJDER</div>
+      <div class="pf-region">Regio Utrecht / Amsterdam · Actief</div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-val">247</div>
+          <div class="stat-lbl">Bevrijdingen</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">8.4</div>
+          <div class="stat-lbl">Gem. respons (min)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">99%</div>
+          <div class="stat-lbl">Beschikbaarheid</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">4</div>
+          <div class="stat-lbl">Meldingen vandaag</div>
+        </div>
+      </div>
+    </div>
+    <div class="pf-section-title">Certificering &amp; bevoegdheid</div>
+    <div class="pf-row">
+      <span class="pf-row-label">Norm</span>
+      <span class="pf-row-val gold">BRL K10006</span>
+    </div>
+    <div class="pf-row">
+      <span class="pf-row-label">Keuringsinstelling</span>
+      <span class="pf-row-val">Kiwa Nederland B.V.</span>
+    </div>
+    <div class="pf-row">
+      <span class="pf-row-label">Certificaatnummer</span>
+      <span class="pf-row-val mono">NL-K10006-4421</span>
+    </div>
+    <div class="pf-row">
+      <span class="pf-row-label">Geldig tot</span>
+      <span class="pf-row-val gold">31-12-2026</span>
+    </div>
+    <div class="pf-section-title">Instelling</div>
+    <div class="pf-row">
+      <span class="pf-row-label">Liftescape B.V.</span>
+      <span class="pf-row-val">Utrecht</span>
+    </div>
+    <div class="pf-row">
+      <span class="pf-row-label">Versie app</span>
+      <span class="pf-row-val mono">2.1.0</span>
+    </div>
+  </div>
+
+  <!-- ─ SCREEN: Detail (incident full page from map) ─ -->
+  <div id="screen-detail" class="screen">
+    <div id="detail-content"></div>
+  </div>
+
+  <!-- ─ Melding full-screen overlay ─ -->
+  <div id="melding-overlay">
+    <div class="mo-top">
+      <div class="mo-id" id="mo-id">LE-2024-0041</div>
+      <div class="urgency-badge ub-standaard" id="mo-badge">
+        <span class="badge-dot"></span>
+        STANDAARD
+      </div>
+    </div>
+    <div class="mo-body">
+      <div class="info-block">
+        <div class="ib-label">Locatie</div>
+        <div class="ib-value" id="mo-building">Amstelgebouw</div>
+        <div class="ib-sub" id="mo-address">Amstelplein 1, Amsterdam</div>
+      </div>
+      <div class="info-block">
+        <div class="ib-label">Liftidentificatie</div>
+        <div class="ib-mono" id="mo-lift">Lift B · Verdieping 6</div>
+      </div>
+      <div class="info-block">
+        <div class="ib-label">Oorzaak (urgentiebepaling)</div>
+        <div class="ib-value" id="mo-cause">Deurfout — cabinedeur vergrendeld</div>
+      </div>
+      <div class="info-block">
+        <div class="ib-label">Passagierstatus</div>
+        <div class="ib-value" id="mo-passenger">1 persoon · rustig · geen medisch risico</div>
+      </div>
+      <div class="sep"></div>
+      <div class="timer-block">
+        <div>
+          <div class="timer-label">Gemeld via noodtelefoon</div>
+          <div class="timer-sub" id="mo-alarm-time">14:32:01</div>
+        </div>
+        <div style="text-align:right">
+          <div class="timer-val" id="mo-timer">0:00</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px">geleden</div>
+        </div>
+      </div>
+    </div>
+    <div class="mo-actions">
+      <button class="btn-accept" onclick="acceptMelding()" aria-label="Melding accepteren en navigatie starten">ACCEPTEER MELDING</button>
+      <button class="btn-decline" onclick="declineMelding()" aria-label="Melding afwijzen, niet beschikbaar">Niet beschikbaar</button>
+    </div>
+  </div>
+
+  <!-- ─ Incoming banner (when on other screen) ─ -->
+  <div id="incoming-banner" onclick="showOverlay()" role="alert" aria-live="assertive">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
+    <span>Nieuwe melding binnenkomend — tik om te openen</span>
+  </div>
+
+  <!-- ─ Bottom navigation ─ -->
+  <nav id="bottom-nav" role="tablist" aria-label="Hoofdnavigatie">
+    <div class="nav-item active" id="nav-melding" onclick="navigate('melding')" role="tab" aria-label="Melding" aria-selected="true" tabindex="0">
+      <div class="nav-icon-wrap">
+        <svg class="nav-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <div class="nav-badge-dot" id="nav-badge-dot"></div>
+      </div>
+      <div class="nav-lbl">Melding</div>
+    </div>
+    <div class="nav-item" id="nav-kaart" onclick="navigate('kaart')" role="tab" aria-label="Kaart" aria-selected="false" tabindex="0">
+      <div class="nav-icon-wrap">
+        <svg class="nav-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+          <line x1="9" y1="3" x2="9" y2="18"/>
+          <line x1="15" y1="6" x2="15" y2="21"/>
+        </svg>
+      </div>
+      <div class="nav-lbl">Kaart</div>
+    </div>
+    <div class="nav-item" id="nav-proceslog" onclick="navigate('proceslog')" role="tab" aria-label="Proceslog" aria-selected="false" tabindex="0">
+      <div class="nav-icon-wrap">
+        <svg class="nav-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/>
+          <line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+      </div>
+      <div class="nav-lbl">Proceslog</div>
+    </div>
+    <div class="nav-item" id="nav-profiel" onclick="navigate('profiel')" role="tab" aria-label="Profiel" aria-selected="false" tabindex="0">
+      <div class="nav-icon-wrap">
+        <svg class="nav-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div class="nav-lbl">Profiel</div>
+    </div>
+  </nav>
+
+</div><!-- /app -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════ */
+const USER_LOC = [52.089, 4.878]; // Woerden area
+
+const INCIDENTS = [
+  {
+    id: 'LE-2024-0041',
+    urgency: 'standaard',
+    building: 'Amstelgebouw',
+    address: 'Amstelplein 1, Amsterdam',
+    lift: 'Lift B · Verdieping 6',
+    cause: 'Deurfout — cabinedeur vergrendeld',
+    passenger: '1 persoon · rustig · geen medisch risico',
+    alarmTime: '14:32:01',
+    lat: 52.3424, lng: 4.9151,
+    dist: '2.3 km', eta: '~8 min rijden',
+    gmapsQuery: 'Amstelplein+1+Amsterdam',
+  },
+  {
+    id: 'LE-2024-0042',
+    urgency: 'kritisch',
+    building: 'Zorgcentrum De Hoven',
+    address: 'Hovenring 12, Rotterdam',
+    lift: 'Lift 3 · Verdieping 4',
+    cause: 'Stroomuitval — noodverlichting actief',
+    passenger: '1 persoon · rolstoelgebruiker · lichte onrust',
+    alarmTime: '14:29:44',
+    lat: 51.9225, lng: 4.4792,
+    dist: '38.7 km', eta: '~28 min rijden',
+    gmapsQuery: 'Hovenring+12+Rotterdam',
+  },
+  {
+    id: 'LE-2024-0043',
+    urgency: 'kritisch',
+    building: 'Parkeergarage P3',
+    address: 'Vredenburg 40, Utrecht',
+    lift: 'Lift 1 · Begane grond',
+    cause: 'Noodtelefoon defect — geen communicatie mogelijk',
+    passenger: 'Onbekend · geen verbale verbinding',
+    alarmTime: '14:34:55',
+    lat: 52.0907, lng: 5.1214,
+    dist: '26.4 km', eta: '~19 min rijden',
+    gmapsQuery: 'Vredenburg+40+Utrecht',
+  },
+  {
+    id: 'LE-2024-0044',
+    urgency: 'standaard',
+    building: 'Ministerie van Financiën',
+    address: 'Korte Voorhout 7, Den Haag',
+    lift: 'Lift A · Verdieping 3',
+    cause: 'Stroomuitval — reguliere noodprocedure',
+    passenger: '2 personen · rustig · geen medisch risico',
+    alarmTime: '14:37:10',
+    lat: 52.0799, lng: 4.3113,
+    dist: '41.2 km', eta: '~31 min rijden',
+    gmapsQuery: 'Korte+Voorhout+7+Den+Haag',
+  },
+];
+
+const LOG_ENTRIES = [
+  { delay: 0,    dot: 'd-alarm',    time: '14:32:01', text: 'Alarmmelding ontvangen via noodtelefoon lift B' },
+  { delay: 1400, dot: 'd-dispatch', time: '14:33:04', text: 'Urgentiebepaling: Standaard — deurfout bevestigd' },
+  { delay: 2800, dot: 'd-gold',     time: '14:34:12', text: 'Bevrijder R. Visser gealarmeerd · 2.3 km' },
+  { delay: 4200, dot: 'd-ok',       time: '14:35:00', text: 'Acceptatie bevestigd · bevrijder onderweg' },
+  { delay: 6000, dot: 'd-comm',     time: '14:38:00', text: 'Verbale verbinding passagier actief' },
+];
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let state = {
+  activeTab: 'melding',
+  activeIncident: INCIDENTS[0],
+  pendingIncident: null,
+  accepted: false,
+  overlayVisible: false,
+  overlayStart: null,
+  timerInterval: null,
+  autoDispatchTimer: null,
+  mapInitialized: false,
+  map: null,
+  proceslogFilled: false,
+  currentIncidentIndex: 0,
+};
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+function navigate(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('active'); n.setAttribute('aria-selected', 'false'); });
+  document.getElementById('screen-' + tab).classList.add('active');
+  const activeNav = document.getElementById('nav-' + tab);
+  activeNav.classList.add('active');
+  activeNav.setAttribute('aria-selected', 'true');
+  state.activeTab = tab;
+
+  if (tab === 'kaart') {
+    if (!state.mapInitialized) initMap();
+    else if (state.map) setTimeout(() => state.map.invalidateSize(), 50);
+  }
+  if (tab === 'proceslog' && state.accepted && !state.proceslogFilled) {
+    fillProcesslog();
+  }
+  if (tab === 'melding') {
+    renderMeldingTab();
+  }
+  if (tab === 'detail') {
+    // detail is navigated to via openDetail, not via tab
+  }
+}
+
+/* ═══════════════════════════════════════════
+   MELDING TAB
+═══════════════════════════════════════════ */
+function renderMeldingTab() {
+  const container = document.getElementById('melding-tab-content');
+  const badge     = document.getElementById('melding-live-badge');
+
+  if (!state.accepted) {
+    badge.style.display = 'none';
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="es-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><line x1="1" y1="1" x2="23" y2="23"/></svg></div>
+        Geen actieve melding.<br>Wacht op nieuwe dispatching…
+      </div>`;
+    return;
+  }
+
+  const inc = state.activeIncident;
+  badge.style.display = 'inline-flex';
+  const uClass = inc.urgency === 'kritisch' ? 'bs-kritisch' : 'bs-standaard';
+  const uLabel = inc.urgency === 'kritisch' ? 'KRITISCH' : 'STANDAARD';
+
+  container.innerHTML = `
+    <div class="incident-card">
+      <div class="ic-header">
+        <div class="ic-id">${inc.id}</div>
+        <div class="badge-sm ${uClass}">${uLabel}</div>
+      </div>
+      <div class="ic-title">${inc.building}</div>
+      <div class="ic-address">${inc.address}</div>
+      <div class="ic-row">
+        <div class="ic-chip">Lift <span>${inc.lift}</span></div>
+        <div class="ic-chip">Afstand <span>${inc.dist}</span></div>
+      </div>
+      <div class="ic-row">
+        <div class="ic-chip">Oorzaak <span>${inc.cause.split('—')[0].trim()}</span></div>
+      </div>
+      <div class="ic-row">
+        <div class="ic-chip" style="width:100%">Passagier <span>${inc.passenger}</span></div>
+      </div>
+      <div class="ic-timer-row">
+        <div class="ic-timer" id="tab-timer">— geleden</div>
+        <div class="ic-status">● Onderweg</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;padding:0 2px">
+      <button class="btn-nav" onclick="navigate('kaart')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+        Open kaartweergave
+      </button>
+    </div>
+  `;
+
+  startTabTimer();
+}
+
+let tabTimerInterval = null;
+let tabTimerStart = Date.now();
+
+function startTabTimer() {
+  if (tabTimerInterval) clearInterval(tabTimerInterval);
+  tabTimerStart = state.overlayStart || Date.now();
+  tabTimerInterval = setInterval(() => {
+    const el = document.getElementById('tab-timer');
+    if (!el) { clearInterval(tabTimerInterval); return; }
+    el.textContent = formatElapsed(Date.now() - tabTimerStart) + ' geleden';
+  }, 1000);
+}
+
+/* ═══════════════════════════════════════════
+   MELDING OVERLAY
+═══════════════════════════════════════════ */
+function showOverlay(incident) {
+  if (incident) {
+    state.pendingIncident = incident;
+    state.activeIncident  = incident;
+  }
+  const inc = state.activeIncident;
+
+  // populate fields
+  document.getElementById('mo-id').textContent        = inc.id;
+  document.getElementById('mo-building').textContent  = inc.building;
+  document.getElementById('mo-address').textContent   = inc.address;
+  document.getElementById('mo-lift').textContent      = inc.lift;
+  document.getElementById('mo-cause').textContent     = inc.cause;
+  document.getElementById('mo-passenger').textContent = inc.passenger;
+  document.getElementById('mo-alarm-time').textContent = inc.alarmTime;
+
+  // urgency badge
+  const badge = document.getElementById('mo-badge');
+  if (inc.urgency === 'kritisch') {
+    badge.className = 'urgency-badge ub-kritisch';
+    badge.innerHTML = '<span class="badge-dot"></span> KRITISCH';
+  } else {
+    badge.className = 'urgency-badge ub-standaard';
+    badge.innerHTML = '<span class="badge-dot"></span> STANDAARD';
+  }
+
+  // show/hide banner
+  document.getElementById('incoming-banner').classList.remove('visible');
+
+  // start overlay timer
+  state.overlayStart = Date.now();
+  if (state.timerInterval) clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(() => {
+    document.getElementById('mo-timer').textContent =
+      formatElapsed(Date.now() - state.overlayStart);
+  }, 1000);
+
+  // show overlay
+  document.getElementById('melding-overlay').classList.add('visible');
+  state.overlayVisible = true;
+}
+
+function hideOverlay() {
+  document.getElementById('melding-overlay').classList.remove('visible');
+  state.overlayVisible = false;
+  if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+}
+
+function acceptMelding() {
+  hideOverlay();
+  state.accepted = true;
+  state.proceslogFilled = false;
+
+  // clear badge
+  document.getElementById('nav-badge-dot').classList.remove('visible');
+
+  // update proceslog incident ID
+  document.getElementById('pl-id').textContent = state.activeIncident.id;
+
+  // show kaart
+  navigate('kaart');
+
+  // fill proceslog in background
+  setTimeout(() => fillProcesslog(), 300);
+}
+
+function declineMelding() {
+  hideOverlay();
+  document.getElementById('nav-badge-dot').classList.remove('visible');
+  scheduleNextDispatch(20000); // retry sooner after decline
+}
+
+/* ═══════════════════════════════════════════
+   PROCESLOG
+═══════════════════════════════════════════ */
+function fillProcesslog() {
+  if (state.proceslogFilled) return;
+  state.proceslogFilled = true;
+  const container = document.getElementById('timeline');
+  container.innerHTML = '';
+
+  LOG_ENTRIES.forEach((entry, i) => {
+    setTimeout(() => {
+      const isLast = (i === LOG_ENTRIES.length - 1);
+
+      // remove 'latest' from prev
+      container.querySelectorAll('.tl-entry.latest')
+        .forEach(el => el.classList.remove('latest'));
+
+      const el = document.createElement('div');
+      el.className = 'tl-entry' + (isLast ? ' latest' : '');
+      el.style.animationDelay = '0s';
+      el.innerHTML = `
+        <div class="tl-dot ${entry.dot}"></div>
+        <div class="tl-time">${entry.time}</div>
+        <div class="tl-text">${entry.text}</div>
+      `;
+      container.appendChild(el);
+    }, entry.delay);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   MAP
+═══════════════════════════════════════════ */
+function initMap() {
+  state.mapInitialized = true;
+
+  const map = L.map('map', {
+    center: [52.1, 5.0],
+    zoom: 8,
+    zoomControl: false,
+    attributionControl: false,
+  });
+  state.map = map;
+
+  // Dark tile layer (CartoDB dark matter)
+  L.tileLayer(
+    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    { maxZoom: 19, subdomains: 'abcd' }
+  ).addTo(map);
+
+  // User location
+  const userIcon = L.divIcon({
+    className: '',
+    html: `<div class="map-user-pin">
+             <div class="map-user-dot"></div>
+             <div class="map-user-label">Uw locatie</div>
+           </div>`,
+    iconSize: [80, 50], iconAnchor: [40, 9],
+  });
+  L.marker(USER_LOC, { icon: userIcon, interactive: false }).addTo(map);
+
+  // Incident pins
+  INCIDENTS.forEach(inc => {
+    const cls = inc.urgency === 'kritisch' ? 'kritisch' : 'standaard';
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="map-pin">
+               <div class="map-pin-dot ${cls}">
+                 ${inc.urgency === 'kritisch' ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2L2 22h20L12 2z"/></svg>'}
+               </div>
+               <div class="map-pin-tail"></div>
+               <div class="map-pin-label">${inc.building.split(' ').slice(0,2).join(' ')}</div>
+             </div>`,
+      iconSize: [110, 72],
+      iconAnchor: [55, 44],
+      popupAnchor: [0, -48],
+    });
+    const marker = L.marker([inc.lat, inc.lng], { icon }).addTo(map);
+    marker.on('click', () => openDetail(inc));
+  });
+
+  setTimeout(() => map.invalidateSize(), 100);
+}
+
+/* ═══════════════════════════════════════════
+   DETAIL SCREEN
+═══════════════════════════════════════════ */
+function openDetail(inc) {
+  const uClass = inc.urgency === 'kritisch' ? 'bs-kritisch' : 'bs-standaard';
+  const uLabel = inc.urgency === 'kritisch' ? 'KRITISCH' : 'STANDAARD';
+
+  document.getElementById('detail-content').innerHTML = `
+    <button class="detail-back" onclick="navigate('kaart')" aria-label="Terug naar kaart">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Terug naar kaart
+    </button>
+
+    <div class="detail-hero">
+      <div class="detail-hero-top">
+        <div class="ic-id">${inc.id}</div>
+        <div class="badge-sm ${uClass}">${uLabel}</div>
+      </div>
+      <div class="detail-building">${inc.building}</div>
+      <div class="detail-address">${inc.address}</div>
+
+      <div class="detail-fields">
+        <div class="detail-field">
+          <div class="df-label">Lift</div>
+          <div class="df-value mono">${inc.lift}</div>
+        </div>
+        <div class="detail-field">
+          <div class="df-label">Alarmtijd</div>
+          <div class="df-value mono">${inc.alarmTime}</div>
+        </div>
+        <div class="detail-field full">
+          <div class="df-label">Oorzaak</div>
+          <div class="df-value">${inc.cause}</div>
+        </div>
+        <div class="detail-field full">
+          <div class="df-label">Passagierstatus</div>
+          <div class="df-value">${inc.passenger}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-route-card">
+      <div class="detail-route-top">
+        <div>
+          <div class="detail-route-dist">${inc.dist}</div>
+          <div class="detail-route-eta">${inc.eta}</div>
+        </div>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" opacity="0.6">
+          <circle cx="12" cy="12" r="10"/>
+          <polygon points="10 8 16 12 10 16 10 8"/>
+        </svg>
+      </div>
+      <div class="detail-route-steps">
+        <span>Vanuit uw locatie</span> (Woerden) →<br>
+        <span>${inc.address}</span><br>
+        Via snelste route · ${inc.eta}
+      </div>
+    </div>
+
+    <button class="btn-nav" onclick="openNavigation('${inc.gmapsQuery}')" aria-label="Open navigatie naar ${inc.building}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      NAVIGEER
+    </button>
+
+    <div class="detail-section-title">Procedure checklist</div>
+    <div class="detail-checklist">
+      <div class="detail-check-item"><div class="check-dot done"></div> Alarmmelding ontvangen</div>
+      <div class="detail-check-item"><div class="check-dot done"></div> Urgentiebepaling afgerond</div>
+      <div class="detail-check-item"><div class="check-dot done"></div> Bevrijder gealarmeerd</div>
+      <div class="detail-check-item"><div class="check-dot pending"></div> Aankomst op locatie</div>
+      <div class="detail-check-item"><div class="check-dot pending"></div> Verbale verbinding passagier</div>
+      <div class="detail-check-item"><div class="check-dot pending"></div> Liftbevrijding voltooid</div>
+    </div>
+  `;
+
+  // Navigate to detail screen (hide nav highlight since it's a sub-screen)
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-detail').classList.add('active');
+  // Keep kaart highlighted in nav since detail is a sub-screen of kaart
+  document.querySelectorAll('.nav-item').forEach(n => { n.classList.remove('active'); n.setAttribute('aria-selected', 'false'); });
+  const kaartNav = document.getElementById('nav-kaart');
+  kaartNav.classList.add('active');
+  kaartNav.setAttribute('aria-selected', 'true');
+  state.activeTab = 'detail';
+}
+
+function openNavigation(query) {
+  window.open('https://www.google.com/maps/dir/?api=1&destination=' + query, '_blank');
+}
+
+/* ═══════════════════════════════════════════
+   AUTO DISPATCH (demo: every 60s)
+═══════════════════════════════════════════ */
+function scheduleNextDispatch(delay) {
+  if (state.autoDispatchTimer) clearTimeout(state.autoDispatchTimer);
+  state.autoDispatchTimer = setTimeout(triggerNewDispatch, delay || 60000);
+}
+
+function triggerNewDispatch() {
+  // cycle to next incident
+  state.currentIncidentIndex = (state.currentIncidentIndex + 1) % INCIDENTS.length;
+  const inc = INCIDENTS[state.currentIncidentIndex];
+
+  if (state.activeTab === 'melding' || !state.accepted) {
+    showOverlay(inc);
+  } else {
+    // show banner on other tabs
+    const banner = document.getElementById('incoming-banner');
+    const label  = inc.urgency === 'kritisch' ? '🔴 KRITISCH' : '🟡 STANDAARD';
+    banner.textContent = `${label} · Nieuwe melding: ${inc.building} — tik om te openen`;
+    banner.classList.add('visible');
+
+    document.getElementById('nav-badge-dot').classList.add('visible');
+
+    // auto-hide banner after 8s
+    setTimeout(() => {
+      banner.classList.remove('visible');
+    }, 8000);
+  }
+
+  scheduleNextDispatch(60000);
+}
+
+/* ═══════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════ */
+function formatElapsed(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  renderMeldingTab();
+
+  // Show first melding overlay after 1.2s for dramatic effect
+  setTimeout(() => {
+    showOverlay(INCIDENTS[0]);
+    document.getElementById('nav-badge-dot').classList.add('visible');
+  }, 1200);
+
+  // Schedule recurring demo dispatches
+  scheduleNextDispatch(60000);
+});
+</script>
+</body>
+</html>
